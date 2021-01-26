@@ -122,6 +122,11 @@ defaults write com.apple.dock persistent-apps -array
 # Show only open applications in the Dock
 defaults write com.apple.dock static-only -bool true
 
+# Autohide the Dock when the mouse is out
+defaults write com.apple.dock autohide -bool true
+
+killall Dock
+
 ###############################################################################
 # Photos                                                                      #
 ###############################################################################
