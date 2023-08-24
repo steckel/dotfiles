@@ -51,3 +51,22 @@ function zle-line-init zle-keymap-select {
 zle -N zle-line-init
 zle -N zle-keymap-select
 export KEYTIMEOUT=1
+
+
+#####################################################################
+# square
+#####################################################################
+#
+export PATH="$PATH:$HOME/Development/config_files/bin"
+# gcloud command
+export PATH="$PATH:/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
+export PATH="$PATH:/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/steckel/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/steckel/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/steckel/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/steckel/google-cloud-sdk/completion.zsh.inc'; fi
+
+# square-java-format command
+export PATH="$PATH:$HOME/Development/squarejavaformat/scripts"
