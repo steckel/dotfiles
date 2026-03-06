@@ -1,3 +1,4 @@
+# dotfiles:seeded
 # The following lines were added by compinstall
 zstyle :compinstall filename "${HOME}/.zshrc"
 
@@ -51,3 +52,7 @@ function zle-line-init zle-keymap-select {
 zle -N zle-line-init
 zle -N zle-keymap-select
 export KEYTIMEOUT=1
+export PATH="$HOME/.local/bin:$PATH"
+
+# Machine-local overrides (not tracked in dotfiles)
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
