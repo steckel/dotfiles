@@ -1,0 +1,33 @@
+# .zshrc.local — machine-local shell config
+#
+# This file is sourced at the end of ~/.zshrc. It is intentionally NOT tracked
+# by the dotfiles repo so each machine can keep its own tool bootstrapping,
+# secrets, and path tweaks without polluting the shared config.
+#
+# Copy this file to ~/.zshrc.local and uncomment the blocks you need.
+
+# --- bun -------------------------------------------------------------------
+# if [ -d "$HOME/.bun" ]; then
+#   export BUN_INSTALL="$HOME/.bun"
+#   export PATH="$BUN_INSTALL/bin:$PATH"
+#   [ -s "$BUN_INSTALL/_bun" ] && source "$BUN_INSTALL/_bun"
+# fi
+
+# --- nvm -------------------------------------------------------------------
+# export NVM_DIR="$HOME/.nvm"
+# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+# [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# --- Homebrew (Apple Silicon) ---------------------------------------------
+# if [ -x /opt/homebrew/bin/brew ]; then
+#   eval "$(/opt/homebrew/bin/brew shellenv)"
+# fi
+
+# --- Homebrew (Linuxbrew) --------------------------------------------------
+# if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+#   eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+# fi
+
+# --- Secrets / API keys ----------------------------------------------------
+# export ANTHROPIC_API_KEY="..."
+# export OPENAI_API_KEY="..."

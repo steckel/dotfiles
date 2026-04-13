@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := all
-ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+ROOT_DIR := $(CURDIR)
 BREW := $(shell command -v brew 2>/dev/null || echo /opt/homebrew/bin/brew)
 
 .PHONY: brew
@@ -16,7 +16,7 @@ tmux: brew
 	@echo "Installing tmux via Homebrew..."
 	@$(BREW) list tmux &>/dev/null || $(BREW) install tmux
 	@echo "Symlinking tmux configuration files..."
-	@ln -snf $(ROOT_DIR)/tmux/tmux.conf $(HOME)/.tmux.conf
+	@ln -snf "$(ROOT_DIR)/tmux/tmux.conf" "$(HOME)/.tmux.conf"
 
 .PHONY: tmux-down
 tmux-down:
@@ -25,7 +25,7 @@ tmux-down:
 
 .PHONY: zsh
 zsh:
-	@if ! grep -q "# dotfiles:seeded" $(HOME)/.zshrc 2>/dev/null; then \
+	@if [ -f $(HOME)/.zshrc ] && ! grep -q "# dotfiles:seeded" $(HOME)/.zshrc; then \
 		echo "Backing up existing .zshrc to ~/.zshrc.bak..."; \
 		cp $(HOME)/.zshrc $(HOME)/.zshrc.bak; \
 		echo "Seeding ~/.zshrc.local from existing .zshrc..."; \
@@ -34,7 +34,11 @@ zsh:
 		  cat $(HOME)/.zshrc; } > $(HOME)/.zshrc.local; \
 	fi
 	@echo "Symlinking zsh configuration files..."
-	@ln -snf $(ROOT_DIR)/zsh/.zshrc $(HOME)/
+	@ln -snf "$(ROOT_DIR)/zsh/.zshrc" "$(HOME)/"
+	@if [ ! -f $(HOME)/.zshrc.local ]; then \
+		echo "Seeding ~/.zshrc.local from zsh/.zshrc.local.example..."; \
+		cp "$(ROOT_DIR)/zsh/.zshrc.local.example" "$(HOME)/.zshrc.local"; \
+	fi
 
 .PHONY: iterm
 iterm:
