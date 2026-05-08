@@ -113,3 +113,6 @@ fi
 # Put per-machine tool bootstrapping (bun, nvm, rbenv, pyenv, etc.) here.
 # See zsh/.zshrc.local.example in the dotfiles repo for a starting point.
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+
+# rustup (installed via Homebrew, keg-only)
+export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
