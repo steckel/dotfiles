@@ -116,3 +116,10 @@ fi
 
 # rustup (installed via Homebrew, keg-only)
 export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
+
+# bun completions
+[ -s "/Users/steckel/.bun/_bun" ] && source "/Users/steckel/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
