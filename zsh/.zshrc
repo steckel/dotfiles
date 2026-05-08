@@ -24,6 +24,46 @@ promptinit
 prompt redhat
 
 #####################################################################
+# vcs_info — git status on the right prompt
+#####################################################################
+#
+# Renders ' (branch*+↑N↓N)' on RPS1 when inside a git repo:
+#   *   unstaged changes (dirty working tree)
+#   +   staged but uncommitted
+#   ↑N  N commits ahead of upstream (not pushed)
+#   ↓N  N commits behind upstream
+#   ?   no upstream tracking branch configured
+#
+# vcs_info runs synchronously on each precmd; in very large repos this
+# can add tens of ms per prompt. If that ever bites, switch to pure or
+# starship for async git status.
+#
+autoload -Uz vcs_info
+zstyle ':vcs_info:*' enable git
+zstyle ':vcs_info:git:*' check-for-changes true
+zstyle ':vcs_info:git:*' unstagedstr '%F{red}*%f'
+zstyle ':vcs_info:git:*' stagedstr   '%F{yellow}+%f'
+zstyle ':vcs_info:git:*' formats       ' %F{cyan}(%b%u%c%m)%f'
+zstyle ':vcs_info:git:*' actionformats ' %F{cyan}(%b|%a%u%c%m)%f'
+
++vi-git-ahead-behind() {
+  local ahead behind
+  if git rev-parse @{upstream} &>/dev/null; then
+    ahead=$(git rev-list --count @{upstream}..HEAD 2>/dev/null)
+    behind=$(git rev-list --count HEAD..@{upstream} 2>/dev/null)
+    (( ahead  )) && hook_com[misc]+="%F{green}↑${ahead}%f"
+    (( behind )) && hook_com[misc]+="%F{magenta}↓${behind}%f"
+  else
+    hook_com[misc]+='%F{red}?%f'
+  fi
+}
+zstyle ':vcs_info:git*+set-message:*' hooks git-ahead-behind
+
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd vcs_info
+setopt prompt_subst
+
+#####################################################################
 # aliases
 #####################################################################
 
@@ -44,8 +84,11 @@ bindkey '^w' backward-kill-word
 bindkey '^r' history-incremental-search-backward
 
 function zle-line-init zle-keymap-select {
-  VIM_PROMPT="%{$fg_bold[yellow]%} [% NORMAL]%  %{$reset_color%}"
-  RPS1="${${KEYMAP/vicmd/$VIM_PROMPT}/(main|viins)/} $EPS1"
+  local VIM_PROMPT="%{$fg_bold[yellow]%} [% NORMAL]%  %{$reset_color%}"
+  case $KEYMAP in
+    vicmd)      RPS1='${vcs_info_msg_0_}'"${VIM_PROMPT}" ;;
+    main|viins) RPS1='${vcs_info_msg_0_}' ;;
+  esac
   zle reset-prompt
 }
 
