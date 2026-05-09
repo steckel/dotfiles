@@ -6,6 +6,11 @@
 #
 # Copy this file to ~/.zshrc.local and uncomment the blocks you need.
 
+# --- rustup (Homebrew, keg-only) -------------------------------------------
+# if [ -d /opt/homebrew/opt/rustup/bin ]; then
+#   export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
+# fi
+
 # --- bun -------------------------------------------------------------------
 # if [ -d "$HOME/.bun" ]; then
 #   export BUN_INSTALL="$HOME/.bun"

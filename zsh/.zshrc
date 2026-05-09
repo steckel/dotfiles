@@ -153,16 +153,6 @@ if [[ "$OSTYPE" == darwin* ]]; then
 fi
 
 # Machine-local overrides (not tracked in dotfiles).
-# Put per-machine tool bootstrapping (bun, nvm, rbenv, pyenv, etc.) here.
+# Put per-machine tool bootstrapping (bun, nvm, rbenv, pyenv, rustup, etc.) here.
 # See zsh/.zshrc.local.example in the dotfiles repo for a starting point.
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
-
-# rustup (installed via Homebrew, keg-only)
-export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
-
-# bun completions
-[ -s "/Users/steckel/.bun/_bun" ] && source "/Users/steckel/.bun/_bun"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
