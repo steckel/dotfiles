@@ -24,21 +24,32 @@ tmux-down:
 	@rm $(HOME)/.tmux.conf
 
 .PHONY: zsh
+# Install order matters:
+#   1. Guarantee ~/.zshrc.local exists, so step 2 always has a file to append
+#      to and never has to decide whether to create or clobber one.
+#   2. Migrate any pre-existing, non-dotfiles ~/.zshrc into ~/.zshrc.local
+#      (appended, never overwritten) and keep a .bak copy. The tracked .zshrc
+#      sources ~/.zshrc.local at the end, so migrated config stays live.
+#   3. Only then replace ~/.zshrc with the symlink.
+# The "# dotfiles:seeded" marker on line 1 of zsh/.zshrc makes step 2
+# idempotent: once the symlink is in place, there is nothing left to migrate.
 zsh:
-	@if [ -f $(HOME)/.zshrc ] && ! grep -q "# dotfiles:seeded" $(HOME)/.zshrc; then \
-		echo "Backing up existing .zshrc to ~/.zshrc.bak..."; \
-		cp $(HOME)/.zshrc $(HOME)/.zshrc.bak; \
-		echo "Seeding ~/.zshrc.local from existing .zshrc..."; \
-		{ echo "# Migrated from previous .zshrc by dotfiles setup"; \
-		  echo ""; \
-		  cat $(HOME)/.zshrc; } > $(HOME)/.zshrc.local; \
-	fi
-	@echo "Symlinking zsh configuration files..."
-	@ln -snf "$(ROOT_DIR)/zsh/.zshrc" "$(HOME)/"
-	@if [ ! -f $(HOME)/.zshrc.local ]; then \
+	@if [ ! -f "$(HOME)/.zshrc.local" ]; then \
 		echo "Seeding ~/.zshrc.local from zsh/.zshrc.local.example..."; \
 		cp "$(ROOT_DIR)/zsh/.zshrc.local.example" "$(HOME)/.zshrc.local"; \
 	fi
+	@if [ -e "$(HOME)/.zshrc" ] && ! grep -q "# dotfiles:seeded" "$(HOME)/.zshrc" 2>/dev/null; then \
+		backup="$(HOME)/.zshrc.bak"; \
+		if [ -e "$$backup" ]; then backup="$(HOME)/.zshrc.bak.$$(date +%Y%m%d%H%M%S)"; fi; \
+		echo "Backing up existing .zshrc to $$backup..."; \
+		cp "$(HOME)/.zshrc" "$$backup"; \
+		echo "Appending existing .zshrc to ~/.zshrc.local..."; \
+		{ echo ""; \
+		  echo "# --- Migrated from previous ~/.zshrc by dotfiles setup on $$(date +%Y-%m-%d) ---"; \
+		  cat "$$backup"; } >> "$(HOME)/.zshrc.local"; \
+	fi
+	@echo "Symlinking zsh configuration files..."
+	@ln -snf "$(ROOT_DIR)/zsh/.zshrc" "$(HOME)/.zshrc"
 
 .PHONY: iterm
 iterm:

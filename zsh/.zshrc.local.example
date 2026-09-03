@@ -36,3 +36,14 @@
 # --- Secrets / API keys ----------------------------------------------------
 # export ANTHROPIC_API_KEY="..."
 # export OPENAI_API_KEY="..."
+
+# --- go toolchain ----------------------------------------------------------
+# if command -v go >/dev/null 2>&1; then
+#   export PATH="$(go env GOPATH)/bin:$PATH"
+# fi
+
+# --- remote hosts ----------------------------------------------------------
+# Host-specific aliases belong here, not in the tracked .zshrc — hostnames on
+# a private network are neither portable nor safe to publish.
+# alias myhost='mosh --server=/opt/homebrew/bin/mosh-server myhost -- \
+#   /opt/homebrew/bin/tmux new-session -A -D -s 0'
