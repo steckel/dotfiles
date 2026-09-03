@@ -137,6 +137,11 @@ export PATH="$HOME/.local/bin:$PATH"
 # up the new var.
 #
 if [[ "$OSTYPE" == darwin* ]]; then
+  # Ensure standard /usr/local/bin is in PATH for tools managed outside Homebrew
+  if [[ ":$PATH:" != *":/usr/local/bin:"* && -d /usr/local/bin ]]; then
+    export PATH="/usr/local/bin:$PATH"
+  fi
+
   # (a) Recover SSH_AUTH_SOCK from launchd if it's empty or stale.
   if [[ -z "$SSH_AUTH_SOCK" || ! -S "$SSH_AUTH_SOCK" ]]; then
     sock=$(launchctl print gui/$UID 2>/dev/null \
