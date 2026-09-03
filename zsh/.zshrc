@@ -152,7 +152,11 @@ if [[ "$OSTYPE" == darwin* ]]; then
   fi
 fi
 
+# Variant-specific shell configuration
+[[ -f ~/.zshrc.variant ]] && source ~/.zshrc.variant
+
 # Machine-local overrides (not tracked in dotfiles).
 # Put per-machine tool bootstrapping (bun, nvm, rbenv, pyenv, rustup, etc.) here.
 # See zsh/.zshrc.local.example in the dotfiles repo for a starting point.
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+

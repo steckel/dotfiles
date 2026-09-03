@@ -1,6 +1,82 @@
 .DEFAULT_GOAL := all
 ROOT_DIR := $(CURDIR)
+VARIANTS_DIR := $(ROOT_DIR)/variants
 BREW := $(shell command -v brew 2>/dev/null || echo /opt/homebrew/bin/brew)
+
+# ==============================================================================
+# Modular Variant Discovery Engine
+# ==============================================================================
+# Variants are modular configurations located in $(VARIANTS_DIR)/<variant_name>
+# (often maintained in environment-specific branches such as 'work' or 'corp').
+#
+# Each variant directory may provide:
+#   1. detect.sh (or detect): An executable script that exits 0 if the host
+#      environment matches the variant, and prints a human-readable description.
+#   2. variant.mk: A Makefile fragment included by this root Makefile. It can
+#      define:
+#      - VARIANT_CUSTOM_TMUX := 1  (skips Homebrew tmux and invokes variant-tmux)
+#      - variant-tmux: Target to configure and link tmux for the variant
+#      - variant-setup:: Double-colon rule hooked into `make all`
+#      - variant-down:: Double-colon rule hooked into teardown
+#
+# Override variant manually if desired:
+#   make VARIANT=work
+#   make VARIANT=none
+# ==============================================================================
+VARIANT ?= $(shell \
+	if [ -d "$(VARIANTS_DIR)" ]; then \
+		for dir in "$(VARIANTS_DIR)"/*; do \
+			if [ -d "$$dir" ]; then \
+				detector=""; \
+				if [ -x "$$dir/detect.sh" ]; then \
+					detector="$$dir/detect.sh"; \
+				elif [ -x "$$dir/detect" ]; then \
+					detector="$$dir/detect"; \
+				fi; \
+				if [ -n "$$detector" ] && "$$detector" >/dev/null 2>&1; then \
+					basename "$$dir"; \
+					exit 0; \
+				fi; \
+			fi; \
+		done; \
+	fi; \
+	echo none; \
+)
+
+ifneq ($(VARIANT),none)
+  VARIANT_DIR := $(VARIANTS_DIR)/$(VARIANT)
+  VARIANT_DETECTOR := $(firstword $(wildcard $(VARIANT_DIR)/detect.sh $(VARIANT_DIR)/detect))
+  ifneq ($(VARIANT_DETECTOR),)
+    VARIANT_DESC ?= $(shell $(VARIANT_DETECTOR) 2>/dev/null)
+  endif
+  VARIANT_DESC ?= $(VARIANT)
+  -include $(VARIANT_DIR)/variant.mk
+endif
+
+.PHONY: env-info
+env-info:
+ifneq ($(VARIANT),none)
+	@echo "==> Detected variant: $(VARIANT_DESC)"
+	@echo "==> Applying '$(VARIANT)' profile..."
+	@echo ""
+else
+	@if [ "$$(uname -s)" = "Darwin" ]; then \
+		echo "==> Detected environment: Personal Mac"; \
+	else \
+		echo "==> Detected environment: Personal Linux"; \
+	fi
+	@echo "==> Applying standard profile (Homebrew & upstream tmux)..."
+	@echo ""
+endif
+
+# Double-colon targets for modular variant hooks
+.PHONY: variant-setup
+variant-setup::
+	@:
+
+.PHONY: variant-down
+variant-down::
+	@:
 
 .PHONY: brew
 brew:
@@ -11,17 +87,26 @@ brew:
 		echo "Homebrew already installed."; \
 	fi
 
+ifeq ($(VARIANT_CUSTOM_TMUX),1)
+
 .PHONY: tmux
-tmux: brew
+tmux: env-info variant-tmux
+
+else
+
+.PHONY: tmux
+tmux: env-info brew
 	@echo "Installing tmux via Homebrew..."
 	@$(BREW) list tmux &>/dev/null || $(BREW) install tmux
 	@echo "Symlinking tmux configuration files..."
 	@ln -snf "$(ROOT_DIR)/tmux/tmux.conf" "$(HOME)/.tmux.conf"
 
+endif
+
 .PHONY: tmux-down
-tmux-down:
+tmux-down: variant-down
 	@echo "Unlinking tmux configuration files..."
-	@rm $(HOME)/.tmux.conf
+	@rm -f "$(HOME)/.tmux.conf"
 
 .PHONY: zsh
 # Install order matters:
@@ -77,4 +162,4 @@ macos:
 # 	@echo ""
 
 .PHONY: all
-all: brew tmux zsh
+all: env-info tmux zsh variant-setup
