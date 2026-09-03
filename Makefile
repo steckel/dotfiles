@@ -51,14 +51,30 @@ zsh:
 	@echo "Symlinking zsh configuration files..."
 	@ln -snf "$(ROOT_DIR)/zsh/.zshrc" "$(HOME)/.zshrc"
 
-.PHONY: iterm
-iterm:
-	@echo ""
-	@echo "iTerm2 color profile must be configured manually:"
-	@echo "  1. Open iTerm2 > Settings > Profiles > Colors"
-	@echo "  2. Click 'Color Presets...' > Import"
-	@echo "  3. Select a profile from $(ROOT_DIR)/mac-os/"
-	@echo ""
+# macOS system defaults. Deliberately NOT part of `all`: it prompts for sudo,
+# wipes the Dock, and restarts Finder, Dock, and SystemUIServer. Run it by
+# hand on a new machine.
+# Target is named `macos` rather than `mac-os` so it cannot collide with the
+# `mac-os` script sitting in the repo root -- make would treat a same-named
+# target as already up to date.
+.PHONY: macos
+macos:
+	@echo "Applying macOS system defaults..."
+	@"$(ROOT_DIR)/mac-os"
+
+# iTerm2 color profiles are not tracked in this repo yet. The instructions
+# below pointed at $(ROOT_DIR)/mac-os/ as if it were a directory of presets,
+# but mac-os is the system-defaults script and no profiles are committed
+# anywhere. Re-enable once there is something real to import.
+#
+# .PHONY: iterm
+# iterm:
+# 	@echo ""
+# 	@echo "iTerm2 color profile must be configured manually:"
+# 	@echo "  1. Open iTerm2 > Settings > Profiles > Colors"
+# 	@echo "  2. Click 'Color Presets...' > Import"
+# 	@echo "  3. Select a profile from <path to committed presets>"
+# 	@echo ""
 
 .PHONY: all
-all: brew tmux zsh iterm
+all: brew tmux zsh

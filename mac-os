@@ -1,14 +1,31 @@
 #!/usr/bin/env bash
+#
+# macOS system defaults.
+#
+# Opt-in: run via `make macos`, not `make all`. It asks for sudo, wipes the
+# Dock, and restarts Finder, Dock, and SystemUIServer when it finishes.
+#
+# Every setting here was verified against macOS 26 (Tahoe) on Apple silicon.
+# Settings that no longer do anything on a supported macOS are deleted rather
+# than left in place -- a `defaults write` that persists but is ignored looks
+# like working config and is worse than no config at all.
 
-# Close any open System Preferences panes, to prevent them from overriding
-# settings we’re about to change
+set -euo pipefail
+
+# Quit System Settings so it cannot write its in-memory copy of a pane back
+# over what we are about to change. Sending `quit` to an app that is not
+# running is a no-op on Tahoe -- it does not launch it first.
 osascript -e 'tell application "System Settings" to quit'
 
 # Ask for the administrator password upfront
 sudo -v
 
-# Keep-alive: update existing `sudo` time stamp until `.macos` has finished
+# Keep-alive: refresh the existing `sudo` timestamp until this script exits.
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
+###############################################################################
+# Text input and keyboard                                                     #
+###############################################################################
 
 # Expand save panel by default
 defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true
@@ -17,19 +34,16 @@ defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode2 -bool true
 # Save to disk (not to iCloud) by default
 defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
 
-# Disable the “Are you sure you want to open this application?” dialog
-defaults write com.apple.LaunchServices LSQuarantine -bool false
-
-# Disable automatic capitalization as it’s annoying when typing code
+# Disable automatic capitalization as it's annoying when typing code
 defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
 
-# Disable smart dashes as they’re annoying when typing code
+# Disable smart dashes as they're annoying when typing code
 defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
 
-# Disable automatic period substitution as it’s annoying when typing code
+# Disable automatic period substitution as it's annoying when typing code
 defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
 
-# Disable smart quotes as they’re annoying when typing code
+# Disable smart quotes as they're annoying when typing code
 defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
 
 # Disable auto-correct
@@ -39,16 +53,21 @@ defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 # (e.g. enable Tab in modal dialogs)
 defaults write NSGlobalDomain AppleKeyboardUIMode -int 3
 
-# Remap Caps Lock to Control on built-in Apple keyboard (vendor 1452, product 835)
-defaults -currentHost write -g "com.apple.keyboard.modifiermapping.1452-835-0" -array '<dict><key>HIDKeyboardModifierMappingDst</key><integer>30064771300</integer><key>HIDKeyboardModifierMappingSrc</key><integer>30064771129</integer></dict>'
-
 # Disable press-and-hold for keys in favor of key repeat
 defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
 
-# Set a blazingly fast keyboard repeat rate
+# Set a blazingly fast keyboard repeat rate. Both values are below what the
+# System Settings sliders expose, which is the point of setting them here.
 defaults write NSGlobalDomain KeyRepeat -int 1
 defaults write NSGlobalDomain InitialKeyRepeat -int 10
 
+# Caps Lock -> Control is deliberately NOT set here.
+#
+# The modifier mapping key is per-device: com.apple.keyboard.modifiermapping
+# .<vendor>-<product>-0. Any value hardcoded in a dotfiles repo is wrong on
+# every machine with a different keyboard attached, and it fails silently --
+# the key persists, matches no device, and does nothing. Set it once per
+# machine in System Settings > Keyboard > Keyboard Shortcuts > Modifier Keys.
 
 ###############################################################################
 # Screen                                                                      #
@@ -101,22 +120,24 @@ defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
 defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
 defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
 
-# Use columns view in all Finder windows by default
+# Use columns view in all Finder windows by default. Only affects windows and
+# folders that have no saved view state of their own.
 # Four-letter codes for the other view modes: `icnv`, `Nlsv`, `Flwv`
 defaults write com.apple.finder FXPreferredViewStyle -string "clmv"
 
-# Show the ~/Library folder
+# Show the ~/Library folder. macOS re-hides this on major OS upgrades, so
+# re-running the script after one is expected.
 chflags nohidden ~/Library
 
 # Show the /Volumes folder
 sudo chflags nohidden /Volumes
 
 ###############################################################################
-# Dock, Dashboard, and hot corners                                            #
+# Dock                                                                        #
 ###############################################################################
 
 # Wipe all (default) app icons from the Dock
-# This is only really useful when setting up a new Mac, or if you don’t use
+# This is only really useful when setting up a new Mac, or if you don't use
 # the Dock to launch apps.
 defaults write com.apple.dock persistent-apps -array
 
@@ -125,8 +146,6 @@ defaults write com.apple.dock static-only -bool true
 
 # Autohide the Dock when the mouse is out
 defaults write com.apple.dock autohide -bool true
-
-killall Dock
 
 ###############################################################################
 # Photos                                                                      #
@@ -140,7 +159,24 @@ defaults -currentHost write com.apple.ImageCapture disableHotPlug -bool true
 ###############################################################################
 # Disable automatic emoji substitution (i.e. use plain text smileys)
 defaults write com.apple.messageshelper.MessageController SOInputLineSettings -dict-add "automaticEmojiSubstitutionEnablediMessage" -bool false
-# Disable smart quotes as it’s annoying for messages that contain code
+# Disable smart quotes as it's annoying for messages that contain code
 defaults write com.apple.messageshelper.MessageController SOInputLineSettings -dict-add "automaticQuoteSubstitutionEnabled" -bool false
 # Disable continuous spell checking
 defaults write com.apple.messageshelper.MessageController SOInputLineSettings -dict-add "continuousSpellCheckingEnabled" -bool false
+
+###############################################################################
+# Apply                                                                       #
+###############################################################################
+#
+# Restart the agents that own the domains written above. Without this, every
+# Finder and Dock setting sits in the preference store until the next login,
+# and a running Finder can flush its own in-memory state back over ours.
+#
+# `|| true` because `set -e` would otherwise abort the script if one of these
+# happens not to be running.
+
+for app in "Dock" "Finder" "SystemUIServer"; do
+  killall "${app}" >/dev/null 2>&1 || true
+done
+
+echo "macOS defaults applied. Some changes need a logout to take full effect."
