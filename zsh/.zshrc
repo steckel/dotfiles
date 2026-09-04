@@ -43,8 +43,8 @@ zstyle ':vcs_info:*' enable git
 zstyle ':vcs_info:git:*' check-for-changes true
 zstyle ':vcs_info:git:*' unstagedstr '%F{red}*%f'
 zstyle ':vcs_info:git:*' stagedstr   '%F{yellow}+%f'
-zstyle ':vcs_info:git:*' formats       ' %F{cyan}(%b%u%c%m)%f'
-zstyle ':vcs_info:git:*' actionformats ' %F{cyan}(%b|%a%u%c%m)%f'
+zstyle ':vcs_info:git:*' formats       '%b%u%c%m'
+zstyle ':vcs_info:git:*' actionformats '%b|%a%u%c%m'
 
 +vi-git-ahead-behind() {
   local ahead behind
@@ -71,8 +71,80 @@ alias gst='git status'
 alias gco='git checkout'
 
 #####################################################################
-# vim mode
+# vim mode & right prompt (RPS1) engine
 #####################################################################
+# Order (left-to-right on RPS1): [Vi Mode] -> [Git Status] -> [Extra]
+# Supports two styles:
+#   - "airline"  (1A: Solid colored background segments)
+#   - "brackets" (2:  Standardized [...] foreground modules)
+# Toggle anytime with `prompt-style` or set icon with `prompt-icon <icon>`
+
+export PROMPT_STYLE="${PROMPT_STYLE:-airline}"
+export PROMPT_VCS_ICON="${PROMPT_VCS_ICON:-🔀}"
+
+_update_rprompt() {
+  local style="${PROMPT_STYLE:-airline}"
+  local icon="${PROMPT_VCS_ICON:-🔀}"
+  local vim_seg vcs_seg extra_seg
+
+  # 1. Vi Mode Segment (Leftmost on RPS1 — most dynamic)
+  if [[ "$style" == "airline" ]]; then
+    case "$KEYMAP" in
+      vicmd) vim_seg="%K{214}%F{232}%B NORMAL %b%f%k" ;;
+      *)     vim_seg="%K{24}%F{255} INSERT %f%k" ;;
+    esac
+  else
+    case "$KEYMAP" in
+      vicmd) vim_seg="%B%F{yellow}[NORMAL]%f%b" ;;
+      *)     vim_seg="%F{blue}[INSERT]%f" ;;
+    esac
+  fi
+
+  # 2. VCS / Git Segment (Middle on RPS1)
+  if [[ -n "$vcs_info_msg_0_" ]]; then
+    local vcs_prefix=""
+    [[ -n "$icon" ]] && vcs_prefix="${icon} "
+    if [[ "$style" == "airline" ]]; then
+      vcs_seg="%K{237}%F{cyan} ${vcs_prefix}${vcs_info_msg_0_}%F{cyan} %f%k"
+    else
+      vcs_seg=" %F{cyan}[${vcs_prefix}${vcs_info_msg_0_}%F{cyan}]%f"
+    fi
+  else
+    vcs_seg=""
+  fi
+
+  # 3. Extra / Variant Segment (Rightmost on RPS1 — least dynamic)
+  RPS1="${vim_seg}${vcs_seg}"'${(e)RPS1_EXTRA}'
+}
+
+add-zsh-hook precmd _update_rprompt
+
+# Toggle or set prompt style: `prompt-style` (toggles), `prompt-style airline`, `prompt-style brackets`
+prompt-style() {
+  if [[ "$1" == "airline" || "$1" == "1a" ]]; then
+    export PROMPT_STYLE="airline"
+  elif [[ "$1" == "brackets" || "$1" == "2" ]]; then
+    export PROMPT_STYLE="brackets"
+  else
+    if [[ "${PROMPT_STYLE:-airline}" == "airline" ]]; then
+      export PROMPT_STYLE="brackets"
+    else
+      export PROMPT_STYLE="airline"
+    fi
+  fi
+  for hook in $precmd_functions; do
+    "$hook"
+  done
+  _update_rprompt
+  print -P "Prompt style set to %B${PROMPT_STYLE}%b: ${RPS1}"
+}
+
+# Set VCS branch icon: e.g. `prompt-icon 🌿` or `prompt-icon ⎇`
+prompt-icon() {
+  export PROMPT_VCS_ICON="$1"
+  _update_rprompt
+  print -P "Prompt VCS icon set to %B${PROMPT_VCS_ICON}%b: ${RPS1}"
+}
 
 bindkey -v
 
@@ -84,11 +156,7 @@ bindkey '^w' backward-kill-word
 bindkey '^r' history-incremental-search-backward
 
 function zle-line-init zle-keymap-select {
-  local VIM_PROMPT="%{$fg_bold[yellow]%} [% NORMAL]%  %{$reset_color%}"
-  case $KEYMAP in
-    vicmd)      RPS1='${vcs_info_msg_0_}'"${VIM_PROMPT}" ;;
-    main|viins) RPS1='${vcs_info_msg_0_}' ;;
-  esac
+  _update_rprompt
   zle reset-prompt
 }
 
