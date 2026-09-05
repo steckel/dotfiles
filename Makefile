@@ -161,5 +161,12 @@ macos:
 # 	@echo "  3. Select a profile from <path to committed presets>"
 # 	@echo ""
 
+.PHONY: hooks
+hooks:
+	@echo "Installing git safety hooks (pre-commit, pre-push)..."
+	@chmod +x "$(ROOT_DIR)/hooks/pre-commit" "$(ROOT_DIR)/hooks/pre-push"
+	@ln -snf "$(ROOT_DIR)/hooks/pre-commit" "$(ROOT_DIR)/.git/hooks/pre-commit"
+	@ln -snf "$(ROOT_DIR)/hooks/pre-push" "$(ROOT_DIR)/.git/hooks/pre-push"
+
 .PHONY: all
-all: env-info tmux zsh variant-setup
+all: env-info hooks tmux zsh variant-setup

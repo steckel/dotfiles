@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# hooks/pre-commit — Prevent leaking proprietary/company-specific content on public branches
+set -euo pipefail
+
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+
+# Enforce strict leak checks when committing directly on master / main
+if [[ "$current_branch" == "master" || "$current_branch" == "main" ]]; then
+  # 1. Disallow any variant implementation directory on a public branch
+  if git diff --cached --name-only | grep -qE '^variants/[^/]+/'; then
+    echo "ERROR: [pre-commit] Staged files include a variant directory on branch '$current_branch'!" >&2
+    echo "       Variant-specific files must only be committed on their respective branch." >&2
+    exit 1
+  fi
+
+  # 2. Scan the staged diff against locally provisioned leak patterns.
+  #
+  #    The pattern list lives in .git/leak_patterns, which is untracked and
+  #    generated per environment. Keeping the terms out of the repository is
+  #    the point: a tracked blocklist would itself publish the very strings it
+  #    is meant to suppress.
+  #
+  #    The scan deliberately covers every path, hooks/ included. Excluding the
+  #    hooks from their own check creates a blind spot precisely where
+  #    environment-specific values are most likely to be hardcoded.
+  pattern_file="$(git rev-parse --git-dir)/leak_patterns"
+  if [[ -f "$pattern_file" ]]; then
+    pattern=$(grep -v '^#' "$pattern_file" | paste -sd '|' - || true)
+    if [[ -n "$pattern" ]]; then
+      matches=$(git diff --cached -U0 | grep -iE "^\+.*($pattern)" || true)
+      if [[ -n "$matches" ]]; then
+        echo "ERROR: [pre-commit] Proprietary/company-specific terms detected in staged diff on '$current_branch':" >&2
+        echo "$matches" >&2
+        echo "" >&2
+        echo "Commit aborted to prevent leaking internal references to a public branch." >&2
+        exit 1
+      fi
+    fi
+  fi
+fi
+
+exit 0

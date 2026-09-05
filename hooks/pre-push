@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# hooks/pre-push — Prevent pushing variant branches or proprietary references to a public remote
+set -euo pipefail
+
+remote="$1"
+url="$2"
+
+# Enforce strict checks when pushing to 'origin' or any github.com URL
+if [[ "$remote" == "origin" || "$url" == *"github.com"* ]]; then
+  # Pattern list is provisioned locally in .git/leak_patterns and never tracked,
+  # so the blocklist itself cannot publish the terms it is meant to suppress.
+  pattern_file="$(git rev-parse --git-dir)/leak_patterns"
+  pattern=""
+  if [[ -f "$pattern_file" ]]; then
+    pattern=$(grep -v '^#' "$pattern_file" | paste -sd '|' - || true)
+  fi
+
+  while read -r local_ref local_sha remote_ref remote_sha; do
+    [[ "$local_sha" == "0000000000000000000000000000000000000000" ]] && continue
+    branch_name="${remote_ref#refs/heads/}"
+
+    # 1. Only master / main may be pushed to a public remote
+    if [[ "$branch_name" != "master" && "$branch_name" != "main" ]]; then
+      echo "ERROR: [pre-push] BLOCKED: Attempting to push '$local_ref' -> '$remote_ref' to public remote '$remote' ($url)!" >&2
+      echo "       Variant branches must NEVER be pushed to a public remote." >&2
+      exit 1
+    fi
+
+    # 2. Block if the commit tree contains any variant subdirectory
+    if git ls-tree -r "$local_sha" --name-only | grep -qE '^variants/[^/]+/'; then
+      echo "ERROR: [pre-push] BLOCKED: Commit $local_sha contains variant directory files!" >&2
+      echo "       Refusing to push to public remote '$remote' ($url)." >&2
+      exit 1
+    fi
+
+    # 3. Scan every commit in the range being pushed.
+    #
+    #    A force-push makes bad commits unreachable but does not delete them;
+    #    remote hosts keep serving unreachable objects by SHA. So the whole
+    #    range is checked, across all paths including hooks/, rather than
+    #    trusting the tip alone.
+    if [[ -n "$pattern" ]]; then
+      if [[ "$remote_sha" == "0000000000000000000000000000000000000000" ]]; then
+        range="$local_sha"
+      else
+        range="${remote_sha}..${local_sha}"
+      fi
+
+      diff_matches=$(git log "$range" -p | grep -iE "^\+.*($pattern)" || true)
+      meta_matches=$(git log "$range" --format="%ae %ce %B" | grep -iE "($pattern)" || true)
+      if [[ -n "$diff_matches" || -n "$meta_matches" ]]; then
+        echo "ERROR: [pre-push] BLOCKED: Proprietary terms detected in commits being pushed to '$remote' ($url):" >&2
+        [[ -n "$diff_matches" ]] && echo "$diff_matches" >&2
+        [[ -n "$meta_matches" ]] && echo "$meta_matches" >&2
+        exit 1
+      fi
+    fi
+  done
+fi
+
+exit 0
