@@ -12,7 +12,6 @@ HISTSIZE=1000
 SAVEHIST=1000
 setopt appendhistory autocd extendedglob nomatch notify
 unsetopt beep
-bindkey -e
 # End of lines configured by zsh-newuser-install
 
 #####################################################################
