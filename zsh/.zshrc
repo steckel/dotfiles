@@ -22,9 +22,9 @@ unsetopt beep
 # Outside tmux (or when SSH'ed from a tmux pane into another machine where $TMUX is unset),
 # include user@host so remote/non-tmux shells clearly identify themselves.
 if [[ -n "$TMUX" ]]; then
-  PS1='[%1~]%(#.#.$) '
+  PS1='%1~%(#.#.$) '
 else
-  PS1='[%n@%m %1~]%(#.#.$) '
+  PS1='%n@%M:%1~%(#.#.$) '
 fi
 
 #####################################################################
