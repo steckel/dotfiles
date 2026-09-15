@@ -52,9 +52,9 @@ zstyle ':vcs_info:git:*' actionformats '%b|%a%u%c%m'
 
 +vi-git-ahead-behind() {
   local ahead behind
-  if git rev-parse @{upstream} &>/dev/null; then
-    ahead=$(git rev-list --count @{upstream}..HEAD 2>/dev/null)
-    behind=$(git rev-list --count HEAD..@{upstream} 2>/dev/null)
+  if git --no-optional-locks rev-parse @{upstream} &>/dev/null; then
+    ahead=$(git --no-optional-locks rev-list --count @{upstream}..HEAD 2>/dev/null)
+    behind=$(git --no-optional-locks rev-list --count HEAD..@{upstream} 2>/dev/null)
     (( ahead  )) && hook_com[misc]+="%F{green}↑${ahead}%f"
     (( behind )) && hook_com[misc]+="%F{magenta}↓${behind}%f"
   else
@@ -63,8 +63,11 @@ zstyle ':vcs_info:git:*' actionformats '%b|%a%u%c%m'
 }
 zstyle ':vcs_info:git*+set-message:*' hooks git-ahead-behind
 
+_vcs_info_no_locks() {
+  GIT_OPTIONAL_LOCKS=0 vcs_info
+}
 autoload -Uz add-zsh-hook
-add-zsh-hook precmd vcs_info
+add-zsh-hook precmd _vcs_info_no_locks
 setopt prompt_subst
 
 #####################################################################
