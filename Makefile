@@ -161,12 +161,35 @@ macos:
 # 	@echo "  3. Select a profile from <path to committed presets>"
 # 	@echo ""
 
+# Installs git hooks from an optional, untracked `hooks/` directory into
+# `.git/hooks/`.
+#
+# `hooks/` is listed in .gitignore on purpose. Hook contents tend to encode
+# environment-specific values (scanner paths, blocked domains, trusted remote
+# patterns), and anything committed to this repository is published. Keeping
+# the mechanism generic here and the contents local means a public branch
+# cannot carry them.
+#
+# Note: `.git/hooks/` receives copies, not symlinks. A symlink into the
+# worktree dangles whenever a branch without `hooks/` is checked out, which
+# would silently disable the hooks on exactly the branches that are published.
+# Re-run `make hooks` after editing a hook source.
 .PHONY: hooks
 hooks:
-	@echo "Installing git safety hooks (pre-commit, pre-push)..."
-	@chmod +x "$(ROOT_DIR)/hooks/pre-commit" "$(ROOT_DIR)/hooks/pre-push"
-	@ln -snf "$(ROOT_DIR)/hooks/pre-commit" "$(ROOT_DIR)/.git/hooks/pre-commit"
-	@ln -snf "$(ROOT_DIR)/hooks/pre-push" "$(ROOT_DIR)/.git/hooks/pre-push"
+	@# A stale core.hooksPath makes git ignore .git/hooks/ entirely, silently
+	@# disabling every hook installed below.
+	@git config --unset core.hooksPath 2>/dev/null || true
+	@if [ -d "$(ROOT_DIR)/hooks" ]; then \
+		echo "Installing local git hooks into .git/hooks (untracked)..."; \
+		for hook in pre-commit pre-push; do \
+			if [ -f "$(ROOT_DIR)/hooks/$$hook" ]; then \
+				install -m 0755 "$(ROOT_DIR)/hooks/$$hook" "$(ROOT_DIR)/.git/hooks/$$hook"; \
+				echo "  installed $$hook"; \
+			fi; \
+		done; \
+	else \
+		echo "No local hooks/ directory found; skipping git hook installation."; \
+	fi
 
 .PHONY: all
 all: env-info hooks tmux zsh variant-setup
