@@ -1,6 +1,7 @@
 .DEFAULT_GOAL := all
 ROOT_DIR := $(CURDIR)
 VARIANTS_DIR := $(ROOT_DIR)/variants
+HOST_OS := $(shell uname -s)
 BREW := $(shell command -v brew 2>/dev/null || echo /opt/homebrew/bin/brew)
 
 # ==============================================================================
@@ -65,7 +66,7 @@ else
 	else \
 		echo "==> Detected environment: Personal Linux"; \
 	fi
-	@echo "==> Applying standard profile (Homebrew & upstream tmux)..."
+	@echo "==> Applying standard profile (upstream tmux)..."
 	@echo ""
 endif
 
@@ -80,7 +81,7 @@ variant-down::
 
 .PHONY: brew
 brew:
-	@if ! command -v brew &>/dev/null && [ ! -f /opt/homebrew/bin/brew ]; then \
+	@if ! command -v brew >/dev/null 2>&1 && [ ! -f /opt/homebrew/bin/brew ]; then \
 		echo "Installing Homebrew..."; \
 		/bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
 	else \
@@ -95,9 +96,18 @@ tmux: env-info variant-tmux
 else
 
 .PHONY: tmux
+ifeq ($(HOST_OS),Darwin)
 tmux: env-info brew
 	@echo "Installing tmux via Homebrew..."
-	@$(BREW) list tmux &>/dev/null || $(BREW) install tmux
+	@$(BREW) list tmux >/dev/null 2>&1 || $(BREW) install tmux
+else
+# Linux packages are managed by the host's package manager, not by dotfiles.
+tmux: env-info
+	@command -v tmux >/dev/null 2>&1 || { \
+		echo "tmux is required. Install it with your system package manager, then rerun make." >&2; \
+		exit 1; \
+	}
+endif
 	@echo "Symlinking tmux configuration files..."
 	@ln -snf "$(ROOT_DIR)/tmux/tmux.conf" "$(HOME)/.tmux.conf"
 
