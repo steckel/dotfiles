@@ -21,10 +21,12 @@ unsetopt beep
 # Inside tmux on the local host, omit user@host (already displayed in tmux status bar).
 # Outside tmux (or when SSH'ed from a tmux pane into another machine where $TMUX is unset),
 # include user@host on its own line so remote/non-tmux shells clearly identify themselves.
+SINGLE_LINE_PROMPT='%1~ %(#.#.$) '
 if [[ -n "$TMUX" ]]; then
-  PS1='%1~ %(#.#.$) '
+  PS1=SINGLE_LINE_PROMPT
 else
-  PS1='%n@%M\n%1~ %(#.#.$) '
+  NEW_LINE=$'\n'
+  PS1='%n@%M'${NEW_LINE}${SINGLE_LINE_PROMPT}
 fi
 
 #####################################################################
