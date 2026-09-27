@@ -203,6 +203,19 @@ konsole:
 # worktree dangles whenever a branch without `hooks/` is checked out, which
 # would silently disable the hooks on exactly the branches that are published.
 # Re-run `make hooks` after editing a hook source.
+.PHONY: claude
+claude:
+	@echo "Symlinking Claude Code configuration..."
+	@ln -snf "$(ROOT_DIR)/claude/settings.json" "$(HOME)/.claude/settings.json"
+	@ln -snf "$(ROOT_DIR)/claude/statusline-command.sh" "$(HOME)/.claude/statusline-command.sh"
+	@ln -snf "$(ROOT_DIR)/claude/set-busy.sh" "$(HOME)/.claude/set-busy.sh"
+
+.PHONY: claude-down
+claude-down:
+	@echo "Unlinking Claude Code configuration..."
+	@rm -f "$(HOME)/.claude/settings.json" "$(HOME)/.claude/statusline-command.sh" \
+		"$(HOME)/.claude/set-busy.sh"
+
 .PHONY: hooks
 hooks:
 	@# A stale core.hooksPath makes git ignore .git/hooks/ entirely, silently

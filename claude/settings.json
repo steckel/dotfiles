@@ -1,0 +1,33 @@
+{
+  "model": "claude-sonnet-5",
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "editorMode": "vim",
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "~/.claude/set-busy.sh on" }] }
+    ],
+    "PreToolUse": [
+      { "hooks": [{ "type": "command", "command": "~/.claude/set-busy.sh on" }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "~/.claude/set-busy.sh off" }] }
+    ],
+    "StopFailure": [
+      { "hooks": [{ "type": "command", "command": "~/.claude/set-busy.sh off" }] }
+    ],
+    "Notification": [
+      { "hooks": [{ "type": "command", "command": "~/.claude/set-busy.sh off" }] }
+    ],
+    "SessionEnd": [
+      { "hooks": [{ "type": "command", "command": "~/.claude/set-busy.sh off" }] }
+    ]
+  }
+}
