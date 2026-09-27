@@ -16,7 +16,8 @@ and is the place for machine-specific settings.
 
 Individual targets: `make zsh`, `make tmux`, `make tmux-down`. On a new Mac,
 `make macos` applies system defaults (prompts for sudo and restarts the Dock
-and Finder, so it is not part of `make`).
+and Finder, so it is not part of `make`). Where Konsole is used, `make konsole`
+installs the Solarized Dark color scheme and makes it the default profile.
 
 ## License
 

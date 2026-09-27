@@ -235,6 +235,25 @@ fi
 # Variant-specific shell configuration
 [[ -f ~/.zshrc.variant ]] && source ~/.zshrc.variant
 
+# Solarized Dark for the Linux virtual console (before starting tmux).
+# Linux OSC P palette controls: console_codes(4).
+# https://ethanschoonover.com/solarized/
+# Slots 0 and 7 use the dark background and normal foreground so ordinary
+# console programs get readable defaults without needing their own theme.
+# Slot 8 is a custom dim gray-blue, between the foreground and background.
+if [[ "$OSTYPE" == linux* && "$TERM" == linux && -z "$TMUX" && -t 1 ]]; then
+  () {
+    local color
+    for color in \
+      0002b36 1dc322f 2859900 3b58900 \
+      4268bd2 5d33682 62aa198 7839496 \
+      8355157 9cb4b16 A586e75 B657b83 \
+      C839496 D6c71c4 E93a1a1 Ffdf6e3; do
+      printf '\033]P%s' "$color"
+    done
+  }
+fi
+
 # Machine-local overrides (not tracked in dotfiles).
 # Put per-machine tool bootstrapping (bun, nvm, rbenv, pyenv, rustup, etc.) here.
 # See zsh/.zshrc.local.example in the dotfiles repo for a starting point.

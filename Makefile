@@ -157,6 +157,25 @@ macos:
 	@echo "Applying macOS system defaults..."
 	@"$(ROOT_DIR)/mac-os"
 
+# Konsole Solarized Dark color scheme and profile. Deliberately NOT part of
+# `all`: Konsole can't be detected reliably (e.g. Flatpak installs are off
+# PATH and keep their data elsewhere), so run `make konsole` by hand where
+# it's wanted. Konsole reads user schemes from ~/.local/share/konsole; the
+# profile is also made the default so new windows pick up the palette.
+# .PHONY keeps the target from being shadowed by the konsole/ directory.
+.PHONY: konsole
+konsole:
+	@echo "Symlinking Konsole color scheme and profile..."
+	@mkdir -p "$(HOME)/.local/share/konsole"
+	@ln -snf "$(ROOT_DIR)/konsole/SolarizedDark.colorscheme" "$(HOME)/.local/share/konsole/SolarizedDark.colorscheme"
+	@ln -snf "$(ROOT_DIR)/konsole/SolarizedDark.profile" "$(HOME)/.local/share/konsole/SolarizedDark.profile"
+	@for kwc in kwriteconfig6 kwriteconfig5; do \
+		if command -v $$kwc >/dev/null 2>&1; then \
+			$$kwc --file konsolerc --group "Desktop Entry" --key DefaultProfile SolarizedDark.profile; \
+			break; \
+		fi; \
+	done
+
 # iTerm2 color profiles are not tracked in this repo yet. The instructions
 # below pointed at $(ROOT_DIR)/mac-os/ as if it were a directory of presets,
 # but mac-os is the system-defaults script and no profiles are committed
