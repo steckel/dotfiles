@@ -23,7 +23,7 @@ unsetopt beep
 # include user@host on its own line so remote/non-tmux shells clearly identify themselves.
 SINGLE_LINE_PROMPT='%1~ %(#.#.$) '
 if [[ -n "$TMUX" ]]; then
-  PS1=SINGLE_LINE_PROMPT
+  PS1=${SINGLE_LINE_PROMPT}
 else
   NEW_LINE=$'\n'
   PS1='%n@%M'${NEW_LINE}${SINGLE_LINE_PROMPT}
