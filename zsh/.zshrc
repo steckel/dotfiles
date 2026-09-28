@@ -234,6 +234,12 @@ if [[ "$OSTYPE" == darwin* ]]; then
   fi
 fi
 
+# Credential expiry countdowns (step ssh certs, ...). Resolve the symlinked
+# ~/.zshrc back into the repo to find the sibling script.
+_ttl_widget="${${(%):-%x}:A:h}/ttl-widget.zsh"
+[[ -r $_ttl_widget ]] && source "$_ttl_widget"
+unset _ttl_widget
+
 # Variant-specific shell configuration
 [[ -f ~/.zshrc.variant ]] && source ~/.zshrc.variant
 

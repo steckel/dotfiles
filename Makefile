@@ -145,6 +145,9 @@ zsh:
 	fi
 	@echo "Symlinking zsh configuration files..."
 	@ln -snf "$(ROOT_DIR)/zsh/.zshrc" "$(HOME)/.zshrc"
+	@mkdir -p "$(HOME)/.local/bin"
+	@chmod +x "$(ROOT_DIR)/zsh/ttl-widget.zsh"
+	@ln -snf "$(ROOT_DIR)/zsh/ttl-widget.zsh" "$(HOME)/.local/bin/ttl-widget"
 
 # macOS system defaults. Deliberately NOT part of `all`: it prompts for sudo,
 # wipes the Dock, and restarts Finder, Dock, and SystemUIServer. Run it by
