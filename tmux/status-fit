@@ -1,0 +1,71 @@
+#!/usr/bin/env zsh
+#####################################################################
+# status-fit — use a second tmux status row when one row would overflow
+#####################################################################
+#
+# tmux can't wrap the status line. This script measures what a single row
+# needs (status-left + window list + status-right) and compares it with the
+# client width. It then sets the session's `status` to `2` or `on`.
+#
+# tmux.conf keeps the right-hand content in @status-right-body. With one row
+# it renders as status-right; with two rows it moves to status-format[1]. The
+# measurement always uses the single-row layout, so it gives the same answer
+# in either mode and can't flip back and forth.
+#
+# Runs from tmux hooks (resize, attach, windows added or removed) and, as an
+# empty #() job in status-left, at most every 5s. The periodic run catches
+# window renames and widgets changing width.
+#
+# Usage: status-fit [client] [--now]
+
+setopt extendedglob
+[[ ${LC_ALL:-${LC_CTYPE:-$LANG}} == *.(#i)utf(-|)8 ]] || export LC_CTYPE=en_US.UTF-8
+zmodload zsh/datetime
+zmodload -F zsh/stat b:zstat
+
+local client=${1:#--now} force=${${(M)@:#--now}:+1}
+
+# Throttle the periodic #() job; hooks pass --now.
+local stamp="${TMPDIR:-/tmp}/tmux-status-fit_${UID}_${${client:-default}//\//_}"
+if [[ -z $force && -e $stamp ]]; then
+  local -a mtime
+  zstat -A mtime +mtime "$stamp" 2>/dev/null
+  (( EPOCHSECONDS - mtime[1] < 5 )) && return 0
+fi
+: >| "$stamp"
+
+local fmt=$'#{client_width}\t#{session_id}\t#{status}'
+fmt+=$'\t#{w:#{E:status-left}}\t#{status-left-length}'
+fmt+=$'\t#{w:#{T:@status-right-body}}\t#{status-right-length}'
+fmt+=$'\t#{session_windows}\t#{w:#{window-status-separator}}'
+fmt+=$'\t#{W:#{w:#{E:window-status-format}} ,#{w:#{E:window-status-current-format}} }'
+
+local width sid cur left left_max right right_max nwin sep wins
+IFS=$'\t' read -r width sid cur left left_max right right_max nwin sep wins \
+  <<<"$(tmux display-message -p ${client:+-c "$client"} "$fmt" 2>/dev/null)"
+[[ $width == <1-> ]] || return 0
+
+# Print width of tmux-styled text, ignoring #[...] and counting wide glyphs.
+_width() { local s=${1//\#\[[^\]]#\]/}; REPLY=${(m)#s}; }
+
+# `display -p` leaves #() jobs empty, so run the jobs in @status-right-body
+# ourselves and add their output width.
+local body=$(tmux show-options -gv @status-right-body 2>/dev/null) cmd
+while [[ $body == *'#('*')'* ]]; do
+  body=${body#*\#\(}
+  cmd=${body%%\)*}
+  body=${body#*\)}
+  _width "$(sh -c "$cmd" 2>/dev/null)"
+  (( right += REPLY ))
+done
+
+local w wins_total=0
+for w in ${=wins}; do (( wins_total += w )); done
+(( nwin > 1 && (wins_total += (nwin - 1) * sep) ))
+
+(( left  > left_max  && (left  = left_max) ))
+(( right > right_max && (right = right_max) ))
+
+local want=on
+(( left + wins_total + right > width )) && want=2
+[[ $cur == $want ]] || tmux set-option -t "$sid" status "$want"

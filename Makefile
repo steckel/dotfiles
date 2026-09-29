@@ -91,18 +91,18 @@ brew:
 ifeq ($(VARIANT_CUSTOM_TMUX),1)
 
 .PHONY: tmux
-tmux: env-info variant-tmux
+tmux: env-info variant-tmux tmux-helpers
 
 else
 
 .PHONY: tmux
 ifeq ($(HOST_OS),Darwin)
-tmux: env-info brew
+tmux: env-info brew tmux-helpers
 	@echo "Installing tmux via Homebrew..."
 	@$(BREW) list tmux >/dev/null 2>&1 || $(BREW) install tmux
 else
 # Linux packages are managed by the host's package manager, not by dotfiles.
-tmux: env-info
+tmux: env-info tmux-helpers
 	@command -v tmux >/dev/null 2>&1 || { \
 		echo "tmux is required. Install it with your system package manager, then rerun make." >&2; \
 		exit 1; \
@@ -113,10 +113,18 @@ endif
 
 endif
 
+# Helper scripts referenced by tmux.conf, shared by default and variant setups.
+.PHONY: tmux-helpers
+tmux-helpers:
+	@mkdir -p "$(HOME)/.local/bin"
+	@chmod +x "$(ROOT_DIR)/tmux/status-fit"
+	@ln -snf "$(ROOT_DIR)/tmux/status-fit" "$(HOME)/.local/bin/tmux-status-fit"
+
 .PHONY: tmux-down
 tmux-down: variant-down
 	@echo "Unlinking tmux configuration files..."
 	@rm -f "$(HOME)/.tmux.conf"
+	@rm -f "$(HOME)/.local/bin/tmux-status-fit"
 
 .PHONY: zsh
 # Install order matters:
