@@ -114,10 +114,12 @@ alias gco='git checkout'
 
 export PROMPT_STYLE="${PROMPT_STYLE:-airline}"
 export PROMPT_VCS_ICON="${PROMPT_VCS_ICON:-🔀}"
+export PROMPT_VCS_COLOR="${PROMPT_VCS_COLOR:-white}"
 
 _update_rprompt() {
   local style="${PROMPT_STYLE:-airline}"
   local icon="${PROMPT_VCS_ICON:-🔀}"
+  local color="${PROMPT_VCS_COLOR:-white}"
   local vim_seg vcs_seg extra_seg
 
   # 1. Vi Mode Segment (Leftmost on RPS1 — most dynamic)
@@ -138,9 +140,9 @@ _update_rprompt() {
     local vcs_prefix=""
     [[ -n "$icon" ]] && vcs_prefix="${icon} "
     if [[ "$style" == "airline" ]]; then
-      vcs_seg="%K{237}%F{cyan} ${vcs_prefix}${vcs_info_msg_0_}%F{cyan} %f%k"
+      vcs_seg="%K{237}%F{${color}} ${vcs_prefix}${vcs_info_msg_0_}%F{${color}} %f%k"
     else
-      vcs_seg=" %F{cyan}[${vcs_prefix}${vcs_info_msg_0_}%F{cyan}]%f"
+      vcs_seg=" %F{${color}}[${vcs_prefix}${vcs_info_msg_0_}%F{${color}}]%f"
     fi
   else
     vcs_seg=""
@@ -177,6 +179,13 @@ prompt-icon() {
   export PROMPT_VCS_ICON="$1"
   _update_rprompt
   print -P "Prompt VCS icon set to %B${PROMPT_VCS_ICON}%b: ${RPS1}"
+}
+
+# Set VCS segment text color: e.g. `prompt-color white` or `prompt-color cyan`
+prompt-color() {
+  export PROMPT_VCS_COLOR="$1"
+  _update_rprompt
+  print -P "Prompt VCS color set to %B${PROMPT_VCS_COLOR}%b: ${RPS1}"
 }
 
 bindkey -v
