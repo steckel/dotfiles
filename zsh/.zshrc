@@ -103,6 +103,14 @@ setopt prompt_subst
 alias gst='git status'
 alias gco='git checkout'
 
+# tmux session shortcuts. These go through any `tmux` alias a variant defines.
+alias ta='tmux attach -t'
+alias tl='tmux list-sessions'
+alias td='tmux detach'
+
+# Attach to the named session (default: work), creating it if needed.
+work() { tmux new-session -A -s "${1:-work}"; }
+
 #####################################################################
 # vim mode & right prompt (RPS1) engine
 #####################################################################
