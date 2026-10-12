@@ -153,6 +153,11 @@ zsh:
 	fi
 	@echo "Symlinking zsh configuration files..."
 	@ln -snf "$(ROOT_DIR)/zsh/.zshrc" "$(HOME)/.zshrc"
+	@if [ -e "$(HOME)/.zshenv" ] && [ ! -L "$(HOME)/.zshenv" ]; then \
+		echo "Moving existing ~/.zshenv to ~/.zshenv.local..."; \
+		cat "$(HOME)/.zshenv" >> "$(HOME)/.zshenv.local" && rm "$(HOME)/.zshenv"; \
+	fi
+	@ln -snf "$(ROOT_DIR)/zsh/.zshenv" "$(HOME)/.zshenv"
 	@mkdir -p "$(HOME)/.local/bin"
 	@chmod +x "$(ROOT_DIR)/zsh/ttl-widget.zsh"
 	@ln -snf "$(ROOT_DIR)/zsh/ttl-widget.zsh" "$(HOME)/.local/bin/ttl-widget"
