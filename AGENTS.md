@@ -54,9 +54,15 @@ Features that depend exclusively on internal corporate infrastructure, authentic
 - **Examples**:
   - Kerberos / corporate SSO ticket status and TTL countdowns.
   - Custom terminal multiplexer wrappers managing security-key socket forwarding.
-  - Monorepo workspace completions and client tools.
-  - Corporate MCP wrappers and internal airlock / repository installation scripts.
+  - Monorepo workspace completions (thin aliases and completions only).
   - Internal web preview and port forwarding documentation.
+- **Internal monorepo first**: Config files for internal tools (e.g. jj, build
+  flags, AI CLI settings) and any command with logic (wrappers, launchers,
+  installers) do **not** go in `variants/` or `master`. They live in the user's
+  internal monorepo config/tool directories and are symlinked into place by the
+  provisioning there. `variants/<variant>/` holds only shell glue: thin
+  aliases, environment variables, `PATH`, and sourcing. Existing wrappers under
+  `variants/<variant>/bin/` predate this and are candidates to move.
 
 ---
 
