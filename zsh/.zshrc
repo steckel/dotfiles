@@ -264,6 +264,16 @@ _ttl_widget="${${(%):-%x}:A:h}/ttl-widget.zsh"
 [[ -r $_ttl_widget ]] && source "$_ttl_widget"
 unset _ttl_widget
 
+# Failsafe: clear the tmux @busy window flag whenever the prompt returns, so a
+# tool that set it (e.g. claude/set-busy.sh) and then exited or was
+# interrupted with Ctrl+C can't leave the window marked busy.
+if [[ -n "$TMUX" ]]; then
+  _tmux_busy_precmd() {
+    [[ -n "$TMUX_PANE" ]] && tmux set-option -u -w -t "$TMUX_PANE" @busy 2>/dev/null
+  }
+  add-zsh-hook precmd _tmux_busy_precmd
+fi
+
 # Variant-specific shell configuration
 [[ -f ~/.zshrc.variant ]] && source ~/.zshrc.variant
 
