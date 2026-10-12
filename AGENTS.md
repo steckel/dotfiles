@@ -64,51 +64,27 @@ Features that depend exclusively on internal corporate infrastructure, authentic
 
 ### Pre-Commit and Pre-Push Safety Hooks
 
-Hook **contents are not tracked in this repository**. Only the installation
-mechanism is generic and public; the hooks themselves are supplied locally by
-the environment that needs them.
+Git hooks (`pre-commit`, `pre-push`, etc.) and any local leak-prevention
+configuration live **strictly outside this repository** in `.git/hooks/` and
+`.git/`.
 
-This is deliberate. Hook scripts accumulate environment-specific values —
-scanner binary paths, blocked email domains, trusted remote patterns, internal
-branch naming conventions. Committing them publishes exactly the information
-the hooks exist to protect. A tracked hook that excludes itself from its own
-scan is worse still: it becomes a blind spot in the one file most likely to
-contain such values.
+1. **No Repository Management**:
+   - Neither `Makefile` nor any `variants/<variant>/variant.mk` tracks, installs,
+     overwrites, or removes git hooks.
+   - Hook scripts accumulate environment-specific values — scanner binary paths,
+     blocked email domains, trusted remote patterns, internal branch naming
+     conventions. Keeping them entirely in `.git/hooks/` guarantees they are
+     never published, never dangle across branch switches, and never cause merge
+     conflicts or `make` failures.
 
-1. **Installation (`Makefile`)**:
-   - `hooks/` is listed in `.gitignore` and is never committed.
-   - `make hooks` copies any `hooks/pre-commit` and `hooks/pre-push` found
-     locally into `.git/hooks/`, which git cannot track.
-   - Copies, not symlinks: a symlink into the worktree dangles whenever a
-     branch lacking `hooks/` is checked out, silently disabling the hooks on
-     precisely the branches that get published. Re-run `make hooks` after
-     editing a hook source.
-   - `make hooks` also clears any stale `core.hooksPath`. While that setting
-     is present git ignores `.git/hooks/` entirely, so leaving it set would
-     silently disable every installed hook.
-   - With no local `hooks/` directory the target is a no-op, so `make all`
-     stays portable on machines that need no such gate.
-
-2. **Expected hook behaviour** (the contract a local hook should implement):
-   - **pre-commit**: on allowlisted public branches, block staging any
-     `variants/<name>/` directory, and scan the staged diff and commit
-     identity against the local pattern list.
-   - **pre-push**: default-deny for non-allowlisted remotes. For any remote
-     not recognised as internal, block branches outside the allowlist, block
-     any commit tree containing `variants/`, and scan the **entire pushed
-     commit range** — not just the tip. A term introduced in an intermediate
-     commit and removed later is still published, and force-pushing does not
-     unpublish it.
-   - Scan **all** paths. Never exempt the hook directory from its own checks.
-   - Treat every externally-supplied value as optional and degrade gracefully
-     when unset, so a hook remains functional on an unprovisioned machine.
-
-3. **Local Leak Patterns (`.git/leak_patterns`)**:
-   - Generated during `make all` by the active variant, when one applies.
-   - Never committed; stays local in `.git/`.
-   - Pattern lists catch known strings only. They will not flag the names of
-     the tools doing the scanning, so treat a clean scan as necessary rather
-     than sufficient.
+2. **Expected Hook Behaviour** (when provisioned in `.git/hooks/`):
+   - **pre-commit**: on public branches, block staging any `variants/<name>/`
+     directory or hook scripts, and scan the staged diff and commit identity
+     against local rules.
+   - **pre-push**: default-deny for non-allowlisted remotes. For any remote not
+     recognised as internal, block branches outside the allowlist, block any
+     commit tree containing `variants/`, and scan the **entire pushed commit
+     range** — not just the tip.
 
 ### Commit Identity & Metadata Rules
 - **Commits on `master`**:

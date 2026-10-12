@@ -1,5 +1,3 @@
-# Local, untracked git hooks installed into .git/hooks by `make hooks`.
-# Hook contents are environment-specific and must never be committed to a
-# public branch. Anchored to the repository root so that variant-supplied
-# hook sources (e.g. variants/<name>/hooks/) remain trackable.
+# Git hooks live only in .git/hooks/ and are never managed by this repository.
+# Ignore a root-level hooks/ directory so a stray local copy is never committed.
 /hooks/
