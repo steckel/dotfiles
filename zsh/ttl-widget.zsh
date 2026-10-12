@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 #####################################################################
-# ttl-widget — credential expiry countdowns for the prompt and tmux
+# ttl-widget — countdowns for the prompt and tmux
 #####################################################################
 #
 # Renders a color-coded "time left" segment for short-lived credentials
@@ -9,6 +9,13 @@
 #   green  🪪 14h 2m    healthy
 #   yellow 🪪 42m       expiring within the provider's warn window
 #   red    🪪 expired   missing or expired
+#
+# and for upcoming events such as a scheduled reboot, which stay hidden
+# until they are close:
+#
+#   (hidden)            nothing scheduled, or further away than show_within
+#   yellow 🔄 5h 10m    within show_within
+#   red    🔄 42m       within the warn window (or "now" once due)
 #
 # Usage:
 #   source ttl-widget.zsh        from .zshrc: prompt segment (outside tmux)
@@ -29,22 +36,38 @@
 #
 #     ttl_widget_register <name> <icon> <probe_fn> [warn_secs=3600]
 #
+#   An event provider works the same way but returns non-zero when nothing
+#   is scheduled; register it with:
+#
+#     ttl_widget_register_event <name> <icon> <probe_fn> \
+#       [warn_secs=3600] [show_within_secs=28800]
+#
+#   Registering an existing name again replaces its icon, probe and windows,
+#   so a variant can swap in a better probe for a built-in widget.
+#
 #   Put extra providers in ~/.config/ttl-widget/*.zsh; they are sourced by
 #   both the prompt and the tmux renderer. See the `step` example below.
 
 zmodload zsh/datetime
 
 typeset -ga _TTL_WIDGETS
-typeset -gA _TTL_ICON _TTL_PROBE _TTL_WARN
+typeset -gA _TTL_ICON _TTL_PROBE _TTL_WARN _TTL_SHOW
 typeset -g ttl_prompt_info=""
 
+# _TTL_SHOW[name] is empty for credentials and holds show_within for events.
 ttl_widget_register() {
   local name=$1 icon=$2 probe=$3 warn=${4:-3600}
   (( ${+functions[$probe]} )) || return 1
-  _TTL_WIDGETS+=("$name")
+  (( ${_TTL_WIDGETS[(Ie)$name]} )) || _TTL_WIDGETS+=("$name")
   _TTL_ICON[$name]=$icon
   _TTL_PROBE[$name]=$probe
   _TTL_WARN[$name]=$warn
+  _TTL_SHOW[$name]=""
+}
+
+ttl_widget_register_event() {
+  ttl_widget_register "$1" "$2" "$3" "${4:-3600}" || return 1
+  _TTL_SHOW[$1]=${5:-28800}
 }
 
 #--------------------------------------------------------------------
@@ -93,7 +116,9 @@ _ttl_format() {
   fi
 }
 
-# Sets reply=(<ok|warn|expired> <time_str>); returns 1 while still unknown.
+# Sets reply=(<state> <time_str>) and returns 0, or returns 1 when the widget
+# should not be shown (still unknown, or an event that is absent or far off).
+# Credential states: ok, warn, expired. Event states: soon, imminent.
 _ttl_state() {
   local name=$1 now=$EPOCHSECONDS expires=0 last=0 st=unknown
   _ttl_cache_path "$name"
@@ -104,6 +129,11 @@ _ttl_state() {
   read -r expires last st < "$REPLY"
 
   local ttl=$(( expires - now )) warn=${_TTL_WARN[$name]}
+  local show=${_TTL_SHOW[$name]}
+  if [[ -n $show ]]; then
+    _ttl_event_state "$name" "$now" "$last" "$st" "$ttl" "$warn" "$show"
+    return
+  fi
   if [[ $st != ok ]] || (( ttl <= 0 )); then
     (( now - last > 30 )) && _ttl_refresh_async "$name"
     reply=(expired expired)
@@ -116,6 +146,23 @@ _ttl_state() {
   if (( ttl <= warn )); then reply=(warn "$REPLY"); else reply=(ok "$REPLY"); fi
 }
 
+_ttl_event_state() {
+  local name=$1 now=$2 last=$3 st=$4 ttl=$5 warn=$6 show=$7
+  # Nothing scheduled, or not yet close enough to show: check hourly.
+  if [[ $st != ok ]] || (( ttl > show )); then
+    (( now - last > 3600 )) && _ttl_refresh_async "$name"
+    return 1
+  fi
+  local interval=$(( ttl <= warn ? 120 : 600 ))
+  (( now - last > interval )) && _ttl_refresh_async "$name"
+  if (( ttl <= 0 )); then
+    reply=(imminent now)
+  else
+    _ttl_format "$ttl"
+    if (( ttl <= warn )); then reply=(imminent "$REPLY"); else reply=(soon "$REPLY"); fi
+  fi
+}
+
 # $1 = tmux | airline | brackets. Sets REPLY to all widget segments.
 _ttl_render() {
   local fmt=$1 out="" name st t i
@@ -123,15 +170,18 @@ _ttl_render() {
     _ttl_state "$name" || continue
     st=$reply[1] t=$reply[2] i=${_TTL_ICON[$name]}
     case $fmt:$st in
-      tmux:expired)     out+="#[fg=red,bold]$i EXPIRED#[default]  " ;;
-      tmux:warn)        out+="#[fg=yellow]$i $t#[default]  " ;;
-      tmux:ok)          out+="#[fg=green]$i $t#[default]  " ;;
-      airline:expired)  out+="%K{160}%F{255}%B $i expired %b%f%k" ;;
-      airline:warn)     out+="%K{208}%F{232}%B $i $t %b%f%k" ;;
-      airline:ok)       out+="%K{22}%F{255} $i $t %f%k" ;;
-      brackets:expired) out+=" %B%F{red}[$i expired]%f%b" ;;
-      brackets:warn)    out+=" %F{yellow}[$i $t]%f" ;;
-      brackets:ok)      out+=" %F{green}[$i $t]%f" ;;
+      tmux:expired)         out+="#[fg=red,bold]$i EXPIRED#[default]  " ;;
+      tmux:imminent)        out+="#[fg=red,bold]$i $t#[default]  " ;;
+      tmux:(warn|soon))     out+="#[fg=yellow]$i $t#[default]  " ;;
+      tmux:ok)              out+="#[fg=green]$i $t#[default]  " ;;
+      airline:expired)      out+="%K{160}%F{255}%B $i expired %b%f%k" ;;
+      airline:imminent)     out+="%K{160}%F{255}%B $i $t %b%f%k" ;;
+      airline:(warn|soon))  out+="%K{208}%F{232}%B $i $t %b%f%k" ;;
+      airline:ok)           out+="%K{22}%F{255} $i $t %f%k" ;;
+      brackets:expired)     out+=" %B%F{red}[$i expired]%f%b" ;;
+      brackets:imminent)    out+=" %B%F{red}[$i $t]%f%b" ;;
+      brackets:(warn|soon)) out+=" %F{yellow}[$i $t]%f" ;;
+      brackets:ok)          out+=" %F{green}[$i $t]%f" ;;
     esac
   done
   REPLY=$out
@@ -171,6 +221,28 @@ _ttl_probe_step_ssh() {
 
 if (( ${+commands[step]} && ${+commands[ssh-add]} )); then
   ttl_widget_register step 🪪 _ttl_probe_step_ssh 3600
+fi
+
+#####################################################################
+# Event provider: systemd scheduled shutdown/reboot (`shutdown -r +N`)
+#####################################################################
+# systemd-logind records a pending shutdown in /run/systemd/shutdown/scheduled
+# as USEC=<microseconds since the epoch>. Shown once it is within 8 hours.
+
+_ttl_probe_systemd_shutdown() {
+  local line
+  [[ -r /run/systemd/shutdown/scheduled ]] || return 1
+  while IFS= read -r line; do
+    if [[ $line == USEC=<-> ]]; then
+      print -r -- $(( ${line#USEC=} / 1000000 ))
+      return 0
+    fi
+  done < /run/systemd/shutdown/scheduled
+  return 1
+}
+
+if [[ -d /run/systemd/system ]]; then
+  ttl_widget_register_event reboot 🔄 _ttl_probe_systemd_shutdown 3600 28800
 fi
 
 #####################################################################
