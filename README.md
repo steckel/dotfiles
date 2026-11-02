@@ -13,6 +13,9 @@ make
 `make` symlinks `~/.zshrc` and `~/.tmux.conf` into this repo. An existing
 `~/.zshrc` is backed up and appended to `~/.zshrc.local`, which is sourced last
 and is the place for machine-specific settings.
+Use `make zsh ZSH_MIGRATE_LOCAL=0` to skip appending the previous `.zshrc`
+to `.zshrc.local`. A backup is still saved, and existing local settings are
+preserved. The default remains to migrate the previous configuration.
 
 Individual targets: `make zsh`, `make tmux`, `make tmux-down`. On a new Mac,
 `make macos` applies system defaults (prompts for sudo and restarts the Dock

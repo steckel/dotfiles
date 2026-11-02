@@ -127,6 +127,8 @@ tmux-down: variant-down
 	@rm -f "$(HOME)/.local/bin/tmux-status-fit"
 
 .PHONY: zsh
+# Set to 0 to keep the backup without appending it to .zshrc.local.
+ZSH_MIGRATE_LOCAL ?= 1
 # Install order matters:
 #   1. Guarantee ~/.zshrc.local exists, so step 2 always has a file to append
 #      to and never has to decide whether to create or clobber one.
@@ -137,6 +139,7 @@ tmux-down: variant-down
 # The "# dotfiles:seeded" marker on line 1 of zsh/.zshrc makes step 2
 # idempotent: once the symlink is in place, there is nothing left to migrate.
 zsh:
+	@command -v zsh >/dev/null 2>&1 || { echo "Install zsh with your system package manager, then rerun make zsh." >&2; exit 1; }
 	@if [ ! -f "$(HOME)/.zshrc.local" ]; then \
 		echo "Seeding ~/.zshrc.local from zsh/.zshrc.local.example..."; \
 		cp "$(ROOT_DIR)/zsh/.zshrc.local.example" "$(HOME)/.zshrc.local"; \
@@ -146,10 +149,12 @@ zsh:
 		if [ -e "$$backup" ]; then backup="$(HOME)/.zshrc.bak.$$(date +%Y%m%d%H%M%S)"; fi; \
 		echo "Backing up existing .zshrc to $$backup..."; \
 		cp "$(HOME)/.zshrc" "$$backup"; \
+		if [ "$(ZSH_MIGRATE_LOCAL)" = "1" ]; then \
 		echo "Appending existing .zshrc to ~/.zshrc.local..."; \
 		{ echo ""; \
 		  echo "# --- Migrated from previous ~/.zshrc by dotfiles setup on $$(date +%Y-%m-%d) ---"; \
 		  cat "$$backup"; } >> "$(HOME)/.zshrc.local"; \
+		fi; \
 	fi
 	@echo "Symlinking zsh configuration files..."
 	@ln -snf "$(ROOT_DIR)/zsh/.zshrc" "$(HOME)/.zshrc"
