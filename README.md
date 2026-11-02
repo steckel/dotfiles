@@ -27,7 +27,16 @@ the current terminal immediately.
 Individual targets: `make zsh`, `make tmux`, `make tmux-down`. On a new Mac,
 `make macos` applies system defaults (prompts for sudo and restarts the Dock
 and Finder, so it is not part of `make`). Where Konsole is used, `make konsole`
-installs the Solarized Dark color scheme and makes it the default profile.
+installs DejaVu Sans Mono Nerd Font and the Solarized Dark profile, selects
+the font at 10 points, and makes the profile the default. Run it on the
+machine running the terminal; existing windows may need to be reopened.
+
+`make fonts` installs only the font on Linux or macOS. Installation uses a
+pinned release with SHA-256 verification and requires Bash, curl, unzip,
+and a SHA-256 utility. It needs no sudo and is safe to rerun. Other terminal
+apps need the font selected manually. Neither target is part of default
+`make`. For a downloaded archive, run
+`bash fonts/install.sh --archive /path/to/DejaVuSansMono.zip`.
 
 `make claude` symlinks `claude/settings.json`, `claude/statusline-command.sh`,
 and `claude/set-busy.sh` into `~/.claude/`. It's not part of `make` — run it
