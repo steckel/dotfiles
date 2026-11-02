@@ -88,6 +88,17 @@ brew:
 		echo "Homebrew already installed."; \
 	fi
 
+# Install TPM once; plugin installation and updates remain explicit actions.
+.PHONY: tpm
+tpm:
+	@if [ ! -f "$(HOME)/.tmux/plugins/tpm/tpm" ]; then \
+		command -v git >/dev/null 2>&1 || { echo "git is required to install TPM." >&2; exit 1; }; \
+		mkdir -p "$(HOME)/.tmux/plugins"; \
+		git clone https://github.com/tmux-plugins/tpm "$(HOME)/.tmux/plugins/tpm"; \
+	fi
+
+tmux: tpm
+
 ifeq ($(VARIANT_CUSTOM_TMUX),1)
 
 .PHONY: tmux
