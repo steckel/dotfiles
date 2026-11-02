@@ -207,6 +207,10 @@ macos:
 # it's wanted. Konsole reads user schemes from ~/.local/share/konsole; the
 # profile is also made the default so new windows pick up the palette.
 # .PHONY keeps the target from being shadowed by the konsole/ directory.
+.PHONY: fonts
+fonts:
+	@bash "$(ROOT_DIR)/fonts/install.sh"
+
 .PHONY: konsole
 konsole:
 	@echo "Symlinking Konsole color scheme and profile..."

@@ -27,7 +27,28 @@ the current terminal immediately.
 Individual targets: `make zsh`, `make tmux`, `make tmux-down`. On a new Mac,
 `make macos` applies system defaults (prompts for sudo and restarts the Dock
 and Finder, so it is not part of `make`). Where Konsole is used, `make konsole`
-installs the Solarized Dark color scheme and makes it the default profile.
+installs the Solarized Dark profile, selects **GoogleSansCode Nerd Font Mono**
+at **10 points**, and makes the profile the default. Run it on the machine
+running the terminal; existing windows may need to be reopened.
+
+Run `make fonts` to install Google Sans Code through the
+[official Nerd Fonts installer](https://github.com/ryanoasis/nerd-fonts/blob/adbd16ab7ca911eaca7ce3b0f2b7994207c7ecae/install.sh).
+The wrapper pins the upstream installer revision and font release (`v3.5.1`);
+upstream handles downloads, extraction, installation, and font-cache refresh.
+It requires Bash, curl, tar with xz support, and standard Unix tools. Run it
+as your normal user on Linux or macOS. Upstream uses the user font directory
+and supports `FONT_DIR` and `XDG_DATA_HOME` overrides. Other terminal apps
+need the font selected manually.
+
+Font installation and profile configuration are separate explicit steps:
+
+```sh
+make fonts
+make konsole
+```
+
+Neither target is part of default `make`. Rerunning `make fonts` delegates
+updates to the pinned upstream installer; it can download the font again.
 
 `make claude` symlinks `claude/settings.json`, `claude/statusline-command.sh`,
 and `claude/set-busy.sh` into `~/.claude/`. It's not part of `make` — run it
