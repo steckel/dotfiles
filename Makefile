@@ -167,6 +167,29 @@ zsh:
 	@chmod +x "$(ROOT_DIR)/zsh/ttl-widget.zsh"
 	@ln -snf "$(ROOT_DIR)/zsh/ttl-widget.zsh" "$(HOME)/.local/bin/ttl-widget"
 
+# Explicit account change; never a prerequisite of configuration installation.
+.PHONY: login-shell
+login-shell:
+	@command -v zsh >/dev/null 2>&1 || { echo "Install zsh before running make login-shell." >&2; exit 1; }
+	@set -eu; \
+	zsh_path=$$(command -v zsh); \
+	account=$$(id -un); \
+	case "$$(uname -s)" in \
+		Linux) login_shell=$$(getent passwd "$$account" | awk -F: 'NR == 1 { print $$7 }') ;; \
+		Darwin) login_shell=$$(dscl . -read "/Users/$$account" UserShell | awk '/^UserShell:/ { print $$2 }') ;; \
+		*) echo "Cannot detect the login shell on this OS; run chsh -s $$zsh_path manually." >&2; exit 1 ;; \
+	esac; \
+	[ -n "$$login_shell" ] || { echo "Cannot determine login shell for $$account." >&2; exit 1; }; \
+	case "$$login_shell" in \
+		*/zsh) echo "Login shell is already zsh ($$login_shell)." ;; \
+		*) \
+			command -v chsh >/dev/null 2>&1 || { echo "chsh is required to change the login shell." >&2; exit 1; }; \
+			grep -Fxq "$$zsh_path" /etc/shells || { echo "$$zsh_path is not listed in /etc/shells; register it before changing the login shell." >&2; exit 1; }; \
+			echo "Changing login shell from $$login_shell to $$zsh_path (chsh may ask for your password)..."; \
+			chsh -s "$$zsh_path" || { echo "Shell change failed; rerun make login-shell to retry." >&2; exit 1; }; \
+			echo "Login shell changed. Log out and back in; use exec zsh to switch this terminal now." ;; \
+	esac
+
 # macOS system defaults. Deliberately NOT part of `all`: it prompts for sudo,
 # wipes the Dock, and restarts Finder, Dock, and SystemUIServer. Run it by
 # hand on a new machine.
