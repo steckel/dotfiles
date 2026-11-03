@@ -102,18 +102,18 @@ tmux: tpm
 ifeq ($(VARIANT_CUSTOM_TMUX),1)
 
 .PHONY: tmux
-tmux: env-info variant-tmux tmux-helpers
+tmux: env-info variant-tmux
 
 else
 
 .PHONY: tmux
 ifeq ($(HOST_OS),Darwin)
-tmux: env-info brew tmux-helpers
+tmux: env-info brew
 	@echo "Installing tmux via Homebrew..."
 	@$(BREW) list tmux >/dev/null 2>&1 || $(BREW) install tmux
 else
 # Linux packages are managed by the host's package manager, not by dotfiles.
-tmux: env-info tmux-helpers
+tmux: env-info
 	@command -v tmux >/dev/null 2>&1 || { \
 		echo "tmux is required. Install it with your system package manager, then rerun make." >&2; \
 		exit 1; \
@@ -121,21 +121,15 @@ tmux: env-info tmux-helpers
 endif
 	@echo "Symlinking tmux configuration files..."
 	@ln -snf "$(ROOT_DIR)/tmux/tmux.conf" "$(HOME)/.tmux.conf"
+	@mkdir -p "$(HOME)/.tmux/complications"
+	@ln -snf "$(ROOT_DIR)/tmux/complications/config.toml" "$(HOME)/.tmux/complications/config.toml"
 
 endif
-
-# Helper scripts referenced by tmux.conf, shared by default and variant setups.
-.PHONY: tmux-helpers
-tmux-helpers:
-	@mkdir -p "$(HOME)/.local/bin"
-	@chmod +x "$(ROOT_DIR)/tmux/status-fit"
-	@ln -snf "$(ROOT_DIR)/tmux/status-fit" "$(HOME)/.local/bin/tmux-status-fit"
 
 .PHONY: tmux-down
 tmux-down: variant-down
 	@echo "Unlinking tmux configuration files..."
 	@rm -f "$(HOME)/.tmux.conf"
-	@rm -f "$(HOME)/.local/bin/tmux-status-fit"
 
 .PHONY: zsh
 # Set to 0 to keep the backup without appending it to .zshrc.local.

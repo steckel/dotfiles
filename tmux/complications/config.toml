@@ -1,0 +1,19 @@
+# Keep composition here; rendering and interaction belong to the TPM plugin.
+[bar]
+max_rows = 1
+overflow = "wrap"
+
+[bar.groups]
+left = ["hostname"]
+center = ["windows"]
+right = ["clock"]
+
+[theme]
+theme = "kittinger"
+symbols = "compatible"
+
+[components.hostname]
+complication = "builtin/hostname"
+
+[components.clock]
+complication = "builtin/time"
