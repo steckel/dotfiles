@@ -54,6 +54,19 @@ updates to the pinned upstream installer; it can download the font again.
 and `claude/set-busy.sh` into `~/.claude/`. It's not part of `make` — run it
 by hand. `make claude-down` removes the symlinks.
 
+## Tmux plugins
+
+`make tmux` installs [Tmux Plugin Manager (TPM)](https://github.com/tmux-plugins/tpm)
+into `~/.tmux/plugins/tpm` when missing. Git and network access are needed for
+that first installation. `make tpm` installs only the manager; existing TPM
+checkouts are left in place.
+
+Add `set -g @plugin 'owner/plugin'` lines above the TPM initializer at the end
+of `tmux/tmux.conf`, then reload with `tmux source-file ~/.tmux.conf`.
+Press `Ctrl-a`, then **I** to install declared plugins, **U** to update them,
+or **Alt-u** to remove undeclared plugins. No additional plugins are enabled
+by default.
+
 ## License
 
 This project is licensed under the GNU General Public License
