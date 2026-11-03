@@ -64,8 +64,26 @@ checkouts are left in place.
 Add `set -g @plugin 'owner/plugin'` lines above the TPM initializer at the end
 of `tmux/tmux.conf`, then reload with `tmux source-file ~/.tmux.conf`.
 Press `Ctrl-a`, then **I** to install declared plugins, **U** to update them,
-or **Alt-u** to remove undeclared plugins. No additional plugins are enabled
-by default.
+or **Alt-u** to remove undeclared plugins.
+
+[tmux-complications](https://github.com/steckel/tmux-complications) owns the
+status bar through TPM. It needs tmux 3.5+, Bash 3.2+, awk, and standard Unix
+utilities; no build is required. The repository currently requires GitHub SSH
+access, so authenticate before pressing **I**. `make tmux` links the bar
+composition from `tmux/complications/config.toml`: hostname, windows, and clock
+on one row. Rendering and interaction changes belong in the plugin repository.
+
+For local plugin development, clone that repository alongside dotfiles as
+`../complications`. Before installing it with TPM, link the checkout:
+
+```sh
+mkdir -p ~/.tmux/plugins
+ln -s /absolute/path/to/complications ~/.tmux/plugins/tmux-complications
+```
+
+If TPM already installed it, move that checkout aside before creating the link.
+Reload tmux after plugin edits. TPM's update command also updates linked Git
+checkouts, so keep local development changes committed before using **U**.
 
 ## License
 
